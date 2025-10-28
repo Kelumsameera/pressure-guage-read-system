@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Live Pressure Gauges</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- jqWidgets CSS & JS -->
+  <link rel="stylesheet" href="https://www.jqwidgets.com/public/jqwidgets/styles/jqx.base.css" type="text/css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <script src="https://www.jqwidgets.com/public/jqwidgets/jqxcore.js"></script>
+  <script src="https://www.jqwidgets.com/public/jqwidgets/jqxdraw.js"></script>
+  <script src="https://www.jqwidgets.com/public/jqwidgets/jqxgauge.js"></script>
+
+  <style>
+    /* Reset & basics */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding-top: 60px;
+      text-align: center;
+      color: #333;
+    }
+
+    /* Nav bar */
+    nav {
+      background-color: #007bff;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      z-index: 1000;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+      padding: 8px 16px;
+      border-radius: 4px;
+      transition: background-color 0.3s ease;
+    }
+    nav a:hover, nav a.active {
+      background-color: #0056b3;
+    }
+
+    /* Page Title */
+    h1 {
+      margin: 30px 0 15px 0;
+      color: #007bff;
+      font-weight: 700;
+    }
+
+    /* Gauges container */
+    .gauge-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 40px;
+      padding: 0 20px 60px;
+    }
+
+    /* Single gauge card */
+    .gauge-card-wrapper {
+      max-width: 320px;
+      width: 100%;
+    }
+    .gauge-card {
+      width: 300px;
+      height: 300px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 15px;
+      margin: 0 auto;
+    }
+
+    /* Digital value label */
+    .gauge-label {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 28px;
+      color: #007bff;
+      font-weight: bold;
+      margin-top: 12px;
+      letter-spacing: 1.5px;
+      background: #e7f0ff;
+      border-radius: 6px;
+      padding: 8px 14px;
+      box-shadow: inset 0 0 8px #a8c5ff;
+      width: 100%;
+      max-width: 280px;
+      margin-left: auto;
+      margin-right: auto;
+      user-select: none;
+    }
+
+    /* Footer */
+    footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #007bff;
+      color: white;
+      text-align: center;
+      padding: 12px 0;
+      font-size: 14px;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+      user-select: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 650px) {
+      .gauge-container {
+        gap: 25px;
+      }
+      .gauge-card {
+        width: 260px;
+        height: 260px;
+      }
+      .gauge-label {
+        font-size: 24px;
+        max-width: 240px;
+        padding: 6px 10px;
+      }
+    }
+    @media (max-width: 400px) {
+      nav {
+        flex-direction: column;
+        gap: 12px;
+        padding: 15px 10px;
+      }
+      nav a {
+        font-size: 14px;
+        padding: 6px 12px;
+      }
+      .gauge-card {
+        width: 220px;
+        height: 220px;
+      }
+      .gauge-label {
+        font-size: 20px;
+        max-width: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="active">Realtime</a>
+    <a href="/database">Database</a>
+    <a href="/chart">Chart</a>
+    <a href="/about">About</a>
+    <a href="/history">History</a>
+  </nav>
+
+  <h1>Real-time Pressure Dashboard</h1>
+
+  <div class="gauge-container">
+    <div class="gauge-card-wrapper">
+      <h3>Production Clean Room</h3>
+      <div id="gauge_production" class="gauge-card"></div>
+      <div id="value_production" class="gauge-label">0 Pa</div>
+    </div>
+    <div class="gauge-card-wrapper">
+      <h3>Assembly Clean Room</h3>
+      <div id="gauge_assembly" class="gauge-card"></div>
+      <div id="value_assembly" class="gauge-label">0 Pa</div>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2025 Flexicare-Lanka - Pressure Gauge Data Monitoring System
+  </footer>
+
+  <script>
+    const socket = io();
+
+    function initGauge(id) {
+      $(`#${id}`).jqxGauge({
+        ranges: [
+          { startValue: 0, endValue: 30, style: { fill: "#00FF00" }, startWidth: 1, endWidth: 5 },
+          { startValue: 30, endValue: 45, style: { fill: "#FFA500" }, startWidth: 1, endWidth: 5 },
+          { startValue: 45, endValue: 60, style: { fill: "#FF0000" }, startWidth: 1, endWidth: 5 }
+        ],
+        cap: { radius: 0.08, style: { fill: '#333', stroke: '#000' } },
+        border: { size: '10%', style: { stroke: '#333', 'stroke-width': 3 }, visible: true },
+        ticksMinor: { interval: 2, size: '5%' },
+        ticksMajor: { interval: 10, size: '9%' },
+        labels: { interval: 10 },
+        pointer: { width: 5 },
+        min: 0,
+        max: 60,
+        value: 0,
+        colorScheme: 'scheme01',
+        animationDuration: 500
+      });
+    }
+
+    $(document).ready(function () {
+      initGauge("gauge_production");
+      initGauge("gauge_assembly");
+
+      socket.on('modbus_update', function (data) {
+        const value = parseFloat(data.value).toFixed(1);
+        if (data.device === "production_clean_room") {
+          $('#gauge_production').jqxGauge('value', value);
+          $('#value_production').text(value + " Pa");
+        } else if (data.device === "assembly_clean_room") {
+          $('#gauge_assembly').jqxGauge('value', value);
+          $('#value_assembly').text(value + " Pa");
+        }
+      });
+    });
+  </script>
+</body>
+</html>

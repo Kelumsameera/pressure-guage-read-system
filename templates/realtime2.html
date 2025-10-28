@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pressure Gauge Multi-Room Dashboard</title>
+  
+  <!-- Socket.IO -->
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+
+  <!-- Canvas-Gauges Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-gauges/gauge.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding-top: 60px;
+      text-align: center;
+    }
+    nav {
+      background-color: #007bff;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 16px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      transition: background-color 0.3s ease;
+    }
+    nav a:hover, nav a.active {
+      background-color: #0056b3;
+    }
+
+    h1 {
+      font-size: 1.8em;
+      margin-top: 20px;
+      padding: 0 10px;
+    }
+
+    .cards-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      width: 350px;
+      max-width: 95vw;
+    }
+
+    .card h2 {
+      font-size: 1.3em;
+      margin-bottom: 15px;
+    }
+
+    footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #007bff;
+      color: white;
+      text-align: center;
+      padding: 12px 0;
+      font-size: 14px;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 600px) {
+      nav {
+        flex-direction: column;
+        gap: 10px;
+      }
+      h1 {
+        font-size: 1.5em;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/">Realtime</a>
+    <a href="/database">Database</a>
+    <a href="/chart">Chart</a>
+    <a href="/about">About</a>
+    <a href="/history">History</a>
+  </nav>
+
+  <h1>Live Pressure Gauge Data Dashboard</h1>
+
+  <div class="cards-container">
+    <!-- Production Clean Room -->
+    <div class="card">
+      <h2>Production Clean Room</h2>
+      <canvas id="gauge_production" width="300" height="300"
+        data-type="radial-gauge"
+        data-units="Pa"
+        data-min-value="0"
+        data-max-value="50"
+        data-major-ticks="0,10,20,30,40,50"
+        data-minor-ticks="2"
+        data-stroke-ticks="true"
+        data-highlights='[
+          {"from": 0, "to": 30, "color": "rgba(0,255,0,0.3)"},
+          {"from": 30, "to": 45, "color": "rgba(255,165,0,0.3)"},
+          {"from": 45, "to": 50, "color": "rgba(255,0,0,0.4)"}
+        ]'
+        data-color-plate="#fff"
+        data-border-shadow-width="0"
+        data-needle-type="arrow"
+        data-needle-width="3"
+        data-animation-rule="linear"
+        data-animation-duration="500"
+        data-value="0">
+      </canvas>
+    </div>
+
+    <!-- Assembly Clean Room -->
+    <div class="card">
+      <h2>Assembly Clean Room</h2>
+      <canvas id="gauge_assembly" width="300" height="300"
+        data-type="radial-gauge"
+        data-units="Pa"
+        data-min-value="0"
+        data-max-value="50"
+        data-major-ticks="0,10,20,30,40,50"
+        data-minor-ticks="2"
+        data-stroke-ticks="true"
+        data-highlights='[
+          {"from": 0, "to": 30, "color": "rgba(0,255,0,0.3)"},
+          {"from": 30, "to": 45, "color": "rgba(255,165,0,0.3)"},
+          {"from": 45, "to": 50, "color": "rgba(255,0,0,0.4)"}
+        ]'
+        data-color-plate="#fff"
+        data-border-shadow-width="0"
+        data-needle-type="arrow"
+        data-needle-width="3"
+        data-animation-rule="linear"
+        data-animation-duration="500"
+        data-value="0">
+      </canvas>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2025 Flexicare-Lanka - Pressure Gauge Data Monitoring System
+  </footer>
+
+  <script>
+    const socket = io();
+
+    const gauges = {
+      production_clean_room: document.gauges.get('gauge_production'),
+      assembly_clean_room: document.gauges.get('gauge_assembly')
+    };
+
+    socket.on('modbus_update', function (data) {
+      const gauge = gauges[data.device];
+      if (gauge) {
+        gauge.value = parseFloat(data.value);
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>U-101 SCADA Dashboard</title>
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <style>
+    body {
+      background-color: #111;
+      color: #0f0;
+      font-family: monospace;
+      padding: 20px;
+    }
+
+    h1 {
+      color: #0ff;
+    }
+
+    .dashboard {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+    }
+
+    .component {
+      border: 1px solid #0f0;
+      padding: 15px;
+      border-radius: 8px;
+      background-color: #000;
+      width: 200px;
+      text-align: center;
+    }
+
+    .fan {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 10px;
+      background: radial-gradient(circle, #0ff 10%, transparent 10%),
+                  radial-gradient(circle, #0ff 10%, transparent 10%);
+      background-position: 0 0, 30px 30px;
+      background-size: 30px 30px;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .motor {
+      width: 50px;
+      height: 50px;
+      background: #00f;
+      border-radius: 50%;
+      margin: 0 auto 10px;
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    .heater {
+      width: 80px;
+      height: 15px;
+      background: red;
+      margin: 0 auto 10px;
+      box-shadow: 0 0 20px red;
+      animation: glow 1s infinite alternate;
+    }
+
+    .valve {
+      width: 40px;
+      height: 20px;
+      background: #0f0;
+      margin: 0 auto 10px;
+      border-radius: 5px;
+      animation: valveAnim 2s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg);}
+      100% { transform: rotate(360deg);}
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1);}
+      50% { transform: scale(1.1);}
+      100% { transform: scale(1);}
+    }
+
+    @keyframes glow {
+      from { box-shadow: 0 0 5px red; }
+      to { box-shadow: 0 0 30px orange; }
+    }
+
+    @keyframes valveAnim {
+      0%, 100% { transform: scaleY(1); background: #0f0;}
+      50% { transform: scaleY(1.5); background: yellow;}
+    }
+
+    .data-box {
+      font-size: 18px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🔧 U-101 SCADA Monitoring System</h1>
+
+  <div class="dashboard">
+    <div class="component">
+      <div class="fan"></div>
+      <div>Fan</div>
+      <div class="data-box">Speed: <span id="fan_speed">--</span> Hz</div>
+    </div>
+
+    <div class="component">
+      <div class="heater"></div>
+      <div>Heater</div>
+      <div class="data-box">EH SP: <span id="eh_sp">--</span></div>
+    </div>
+
+    <div class="component">
+      <div class="motor"></div>
+      <div>Motor</div>
+      <div class="data-box">Running</div>
+    </div>
+
+    <div class="component">
+      <div class="valve"></div>
+      <div>Valve</div>
+      <div class="data-box">Open: <span id="valve">--</span>%</div>
+    </div>
+
+    <div class="component">
+      <div class="data-box">🌡️ Temp: <span id="temp">--</span> °C</div>
+      <div class="data-box">💧 Humidity: <span id="humidity">--</span> %</div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+
+    setInterval(() => {
+      socket.emit("request_data");
+    }, 1000);
+
+    socket.on("update_data", data => {
+      document.getElementById("temp").innerText = data.temp;
+      document.getElementById("humidity").innerText = data.humidity;
+      document.getElementById("fan_speed").innerText = data.fan_speed;
+      document.getElementById("valve").innerText = data.valve;
+      document.getElementById("eh_sp").innerText = data.heater;
+    });
+  </script>
+
+</body>
+</html>

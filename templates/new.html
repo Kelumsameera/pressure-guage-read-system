@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>📊 History Data Chart </title>
+
+<!-- Chart.js + Zoom Plugin -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #f9f9f9;
+    margin: 0;
+    padding-top: 60px;
+    text-align: center;
+  }
+  nav {
+    background-color: #007bff;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    padding: 12px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+  }
+  nav a {
+    color: white;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 16px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+  }
+  nav a:hover, nav a.active { background-color: #0056b3; }
+
+  h2 { font-size: 1.8em; margin-top: 20px; padding: 0 10px; }
+
+  form { margin-top: 15px; }
+  label { margin-right: 8px; }
+  input, select, button {
+    margin: 6px;
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  button {
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    transition: background 0.3s ease;
+  }
+  button:hover { background-color: #0056b3; }
+
+  /* Custom Legend */
+  #customLegend {
+    margin: 10px 0;
+    padding: 10px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid #ccc;
+  }
+
+  /* Scrollable chart wrapper */
+  .chartAreaWrapper {
+    width: 100%;         /* Full screen width */
+    overflow-x: auto;  /* Horizontal scroll */
+    margin: 20px 0;
+    border: 1px solid #ccc;
+    padding: 10px 0;
+  }
+  .chartWrapper {
+    position: relative;
+    height: 400px;
+  }
+  .chartWrapper > canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .nav-hamburger {
+    display: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: white;
+    padding: 5px;
+    border: none;
+    background: none;
+  }
+  @media (max-width: 600px) {
+    nav { flex-direction: column; gap: 10px; justify-content: space-between; align-items: stretch; }
+    h2 { font-size: 1.5em; }
+    #customLegend { flex-direction: column; align-items: flex-start; padding: 5px; }
+    .nav-hamburger { display: block; order: 3; width: 100%; text-align: right; }
+    .nav-links { display: none; flex-direction: column; width: 100%; gap: 0; order: 4; }
+    .nav-links.open { display: flex; }
+    .nav-links a { width: 100%; text-align: center; margin: 5px 0; }
+    form { flex-direction: column; align-items: center; }
+    input, select, button { width: 90%; max-width: 300px; margin: 5px auto; display: block; }
+    .chartWrapper { height: 300px; }
+    button { width: 90%; max-width: 200px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav>
+  <button class="nav-hamburger" onclick="toggleMenu()">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+  <div class="nav-links" id="navLinks">
+    <a href="/"><i class="fa-solid fa-signal"></i> Realtime</a>
+    <a href="/database"><i class="fa-solid fa-database"></i> Database</a>
+    <a href="/chart"><i class="fa-solid fa-chart-line"></i> Chart</a>
+    <a href="/about"><i class="fa-solid fa-circle-info"></i></a>
+    <a href="/history" class="active"><i class="fa-solid fa-clock-rotate-left"></i> History</a>
+  </div>
+</nav>
+
+<h2>📊 History Chart - Scrollable & Zoom/Pan</h2>
+
+<form method="get" action="/history">
+  <label for="start_datetime">Start Time:</label>
+  <input type="datetime-local" name="start_datetime" id="start_datetime" required>
+
+  <label for="end_datetime">End Time:</label>
+  <input type="datetime-local" name="end_datetime" id="end_datetime" required>
+
+  <label for="interval">Interval:</label>
+  <select name="interval" id="interval">
+    <option value="seconds" {% if interval == 'seconds' %}selected{% endif %}>Seconds</option>
+    <option value="minutes" {% if interval == 'minutes' %}selected{% endif %}>Minutes</option>
+    <option value="hours" {% if interval == 'hours' %}selected{% endif %}>Hours</option>
+  </select>
+
+  <label for="device">Sensor:</label>
+  <select name="device" id="device">
+    <option value="">-- All Sensors --</option>
+    {% for device in devices %}
+      <option value="{{ device }}" {% if device == selected_device %}selected{% endif %}>{{ device }}</option>
+    {% endfor %}
+  </select>
+
+  <button type="submit"><i class="fa-solid fa-filter"></i> Filter</button>
+</form>
+
+<!-- Custom Legend -->
+<div id="customLegend"></div>
+
+<!-- Scrollable chart -->
+<div class="chartAreaWrapper">
+  <div class="chartWrapper" id="chartWrapper">
+    <canvas id="historyChart"></canvas>
+  </div>
+</div>
+
+<button onclick="downloadCSV()"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+<button onclick="chart.resetZoom()"><i class="fa-solid fa-magnifying-glass-minus"></i> Reset Zoom</button>
+
+<script>
+  function toggleMenu() {
+    const navLinks = document.getElementById('navLinks');
+    navLinks.classList.toggle('open');
+  }
+  const labelsData = JSON.parse('{{ labels | tojson | safe }}');
+  const valuesData = JSON.parse('{{ values | tojson | safe }}');
+
+  // Fixed colors for sensors
+  const sensorColors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8'];
+
+  const allData = {};
+  Object.keys(labelsData).forEach((device, idx) => {
+    allData[device] = {
+      labels: labelsData[device],
+      values: valuesData[device],
+      color: sensorColors[idx % sensorColors.length]
+    };
+  });
+
+  let chart;
+  let currentData = allData;
+
+  const ctx = document.getElementById('historyChart').getContext('2d');
+
+  function setChartWrapperWidth() {
+    const area = document.querySelector('.chartAreaWrapper');
+    const containerWidth = area.clientWidth - 20; // account for padding
+    const maxPoints = Math.max(...Object.values(currentData).map(d => d.labels.length), 1);
+    const widthPerPoint = 2; // pixels per data point, for dense plot
+    const dataWidth = maxPoints * widthPerPoint;
+    const minWidth = containerWidth; // at least full width
+    let newWidth = Math.max(minWidth, dataWidth);
+    document.getElementById('chartWrapper').style.width = newWidth + 'px';
+  }
+
+  function updateCustomLegend(data) {
+    const legendDiv = document.getElementById('customLegend');
+    let html = '';
+    Object.keys(data).forEach(device => {
+      const color = data[device].color;
+      html += `
+        <div class="legend-item">
+          <div class="legend-color" style="background-color: ${color};"></div>
+          <span>${device}</span>
+        </div>
+      `;
+    });
+    legendDiv.innerHTML = html;
+  }
+
+  function createChart(data) {
+    setChartWrapperWidth();
+    updateCustomLegend(data); // Update legend
+
+    // Calculate global min and max X for exact span
+    const allTimes = Object.values(data).flatMap(d => d.labels.map(l => new Date(l)));
+    const minX = new Date(Math.min(...allTimes));
+    const maxX = new Date(Math.max(...allTimes));
+
+    const datasets = Object.keys(data).map(device => ({
+      label: device,
+      data: data[device].labels.map((timestamp, i) => ({ x: timestamp, y: data[device].values[i] })),
+      borderColor: data[device].color,
+      backgroundColor: data[device].color + '33',
+      fill: true,
+      tension: 0.4,
+      pointRadius: 1,
+      pointHoverRadius: 3
+    }));
+
+    if (chart) chart.destroy();
+
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: {
+            left: 20,
+            right: 0,
+            top: 0,  // No padding for legend since custom
+            bottom: 0
+          }
+        },
+        scales: {
+          x: {
+            type: 'time',
+            min: minX,
+            max: maxX,
+            time: {
+              tooltipFormat: 'YYYY-MM-DD HH:mm:ss',
+              displayFormats: { second:'HH:mm:ss', minute:'HH:mm', hour:'HH:mm' }
+            },
+            title: { display: true, text: 'Timestamp' }
+          },
+          y: {
+            title: { display: true, text: 'Value (Pa)' }
+          }
+        },
+        plugins: {
+          legend: { display: false },  // Hide built-in legend
+          zoom: {
+            pan: { enabled: true, mode: 'x' },   // horizontal pan only
+            zoom: {
+              wheel: { enabled: true },
+              pinch: { enabled: true },
+              mode: 'x'  // zoom only X-axis
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // CSV export
+  function downloadCSV() {
+    let csvContent = "data:text/csv;charset=utf-8,Device,Timestamp,Value\n";
+    Object.keys(currentData).forEach(device => {
+      currentData[device].labels.forEach((timestamp, i) => {
+        csvContent += `${device},${timestamp},${currentData[device].values[i]}\n`;
+      });
+    });
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "sensor_data.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Initialize chart
+  createChart(allData);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About | Modbus Monitoring System</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding-top: 60px;
+      text-align: center;
+    }
+    nav {
+      background-color: #007bff;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 16px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      transition: background-color 0.3s ease;
+    }
+    nav a:hover, nav a.active {
+      background-color: #0056b3;
+    }
+
+    h1 {
+      font-size: 1.8em;
+      margin-top: 20px;
+      padding: 0 10px;
+    }
+
+    /* Card style */
+    .card {
+      background: white;
+      padding: 20px;
+      margin: 20px auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      width: 320px;
+      max-width: 90vw;
+      text-align: left;
+    }
+
+    .card h2 {
+      font-size: 1.4em;
+      margin-bottom: 12px;
+      color: #007bff;
+    }
+
+    .card p, .card ul {
+      font-size: 1em;
+      color: #333;
+      line-height: 1.5;
+    }
+
+    .card ul {
+      padding-left: 20px;
+    }
+
+    footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #007bff;
+      color: white;
+      text-align: center;
+      padding: 12px 0;
+      font-size: 14px;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 600px) {
+      nav {
+        flex-direction: column;
+        gap: 10px;
+      }
+      h1 {
+        font-size: 1.5em;
+      }
+      .card {
+        width: 95vw;
+        margin: 15px auto;
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" >Realtime</a>
+  <a href="/database">Database</a>
+  <a href="/chart">Chart</a>
+  <a href="/history">History</a>
+  <a href="/about" class="active">About</a>
+</nav>
+
+<div class="container">
+  <h1>About the Modbus Monitoring System</h1>
+
+  <div class="card">
+    <h2>🧭 System Overview</h2>
+    <p>
+      This system reads data from Modbus TCP-enabled devices such as real-time readings, logs values to a MySQL database, and offers historical analysis with export functionality.
+    </p>
+    <ul>
+      <li>Real-time data monitoring with Flask-SocketIO</li>
+      <li>Data logging to MySQL</li>
+      <li>Interactive charts (Chart.js)</li>
+      <li>Date-filtered reports and Excel export</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>🧑‍💻 Developer 📞 Contact Information</h2>
+    <p>
+      <strong>Name:</strong> Sameera Kelum<br />
+      <strong>Location:</strong> Sri Lanka<br />
+      <strong>Phone:</strong> +94704685300<br />
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>📚 Technologies Used</h2>
+    <ul>
+      <li>Python (Flask, Flask-SocketIO)</li>
+      <li>MySQL</li>
+      <li>HTML/CSS/JavaScript</li>
+      <li>Bootstrap for responsive design</li>
+      <li>Chart.js for data visualization</li>
+    </ul>
+  </div>
+</div>
+
+<footer>
+  &copy; {{ datetime.utcnow().year }} | Developed by Sameera Kelum, Flexicare Lanka Engineering Department | All rights reserved.
+</footer>
+
+</body>
+</html>

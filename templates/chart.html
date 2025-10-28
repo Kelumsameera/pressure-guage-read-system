@@ -1,173 +1,269 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>Pressure Guage Data Chart (Live)</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background: #f9f9f9;
-        }
-        nav {
-            background-color: #007bff;
-            padding: 10px 20px;
-            display: flex;
-            gap: 20px;
-            align-items: center;
-        }
-        nav a {
-            color: white;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 16px;
-            padding: 6px 12px;
-            border-radius: 4px;
-            transition: background-color 0.3s ease;
-        }
-        nav a:hover, nav a.active {
-            background-color: #0056b3;
-        }
-        main {
-            max-width: 900px;
-            margin: 40px auto 80px auto; /* bottom margin for footer */
-            padding: 0 20px;
-            background: white;
-            box-shadow: 0 0 8px rgba(0,0,0,0.1);
-            border-radius: 8px;
-        }
-        h1 {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        #modbusChart {
-            max-width: 100%;
-            max-height: 500px;
-        }
-        footer {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            background: #007bff;
-            color: white;
-            text-align: center;
-            padding: 12px 0;
-            font-size: 14px;
-            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pressure Gauge Data Chart (Live)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f9f9f9; }
+    nav { background-color: #007bff; padding: 10px 20px; display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; align-items: center; }
+    nav a { color: white; text-decoration: none; font-weight: bold; font-size: 16px; padding: 6px 12px; border-radius: 4px; transition: background-color 0.3s ease; }
+    nav a:hover, nav a.active { background-color: #0056b3; }
+    main { max-width: 100%; margin: 40px auto 100px auto; padding: 0 20px; background: white; box-shadow: 0 0 8px rgba(0, 0, 0, 0.1); border-radius: 8px; }
+    h1 { margin: 0; padding: 20px; font-size: 1.8em; text-align: center; }
+
+    .nav-title {
+      color:white;
+      font-weight: bold;
+    }
+    /* Custom Legend */
+    #customLegend {
+      margin: 10px 0;
+      padding: 10px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      border: 1px solid #ccc;
+    }
+    .chartAreaWrapper {
+      width: 100%;
+      overflow-x: auto;
+      margin: 20px 0;
+      border: 1px solid #ccc;
+      padding: 10px 0;
+    }
+    .chartWrapper {
+      position: relative;
+      height: 400px;
+      min-width: 800px; /* Minimum width to enable horizontal scroll */
+    }
+    #modbusChart { height: 100% !important; width: 100% !important; }
+    footer { position: fixed; bottom: 0; width: 100%; background: #007bff; color: white; text-align: center; padding: 12px 0; font-size: 14px; user-select: none; }
+    footer a { color: white; text-decoration: none; margin-left: 5px; }
+    footer a:hover { text-decoration: underline; }
+    .nav-hamburger {
+      display: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: white;
+      padding: 5px;
+      border: none;
+      background: none;
+    }
+    .nav-left {
+        justify-content: space-between;
+      }
+    .nav-left img {
+      height: 25px; /* Reduced size */
+      margin-right: 8px;
+    }
+    @media (max-width: 600px) {
+      nav { flex-direction: column; padding: 10px; justify-content: space-between; }
+      nav a { font-size: 14px; padding: 5px 10px; }
+      h1 { font-size: 1.4em; padding: 10px; }
+      main { margin: 20px 10px 100px 10px; }
+      footer { font-size: 12px; }
+      #customLegend { flex-direction: column; align-items: flex-start; padding: 5px; }
+      .chartWrapper { height: 300px; min-width: 600px; } /* Smaller min-width for mobile scroll */
+      .nav-hamburger { display: block; order: 3; width: 100%; text-align: right; }
+      .nav-links { display: none; flex-direction: column; width: 100%; gap: 0; }
+      .nav-links.open { display: flex; }
+      .nav-links a { width: 100%; text-align: center; margin: 5px 0; }
+      .nav-left img { height: 20px; margin-right: 5px; } /* Further reduced for mobile */
+    }
+
+  </style>
 </head>
 <body>
-    <nav>
-        <a href="./" >Realtime</a>
-        <a href="/database">Database</a>
-        <a href="/chart" class="active">Chart</a>
-    </nav>
+  <nav>
+    <button class="nav-hamburger" onclick="toggleMenu()">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <div class="nav-left">
+      <img src="https://flexicare.com/wp-content/uploads/Flexicare-Emblem-White.svg" alt="Flexicare Logo">
+      <span class="nav-title">Flexicare-Lanka - Pressure Gauge Monitoring</span>
+    </div>
+    <div class="nav-links" id="navLinks">
+      <a href="/"><i class="fa-solid fa-signal"></i> Realtime</a>
+      <a href="/database"><i class="fa-solid fa-database"></i> Database</a>
+      <a href="/chart" class="active"><i class="fa-solid fa-chart-line"></i> Chart</a>
+      <a href="/history"><i class="fa-solid fa-clock-rotate-left"></i> History</a>
+    </div>
+  </nav>
 
-    <main>
-        <h1>Pressure Guage Data Chart (Live)</h1>
-
+  <main>
+    <h1>Pressure Gauge Data Chart (Live)</h1>
+    <!-- Custom Legend -->
+    <div id="customLegend"></div>
+    <div class="chartAreaWrapper">
+      <div class="chartWrapper" id="chartWrapper">
         <canvas id="modbusChart"></canvas>
-    </main>
+      </div>
+    </div>
+  </main>
 
-    <footer>
-        &copy; 2025 flexicare-Lanka - Pressure Guage Data Monitoring System
-    </footer>
+  <footer>
+    &copy; 2025 Developed by Flexicare-Lanka - Engineering Team (Sameera & Kelum)
+    | <a href="/about" title="About"><i class="fa-solid fa-circle-question"></i></a>
+  </footer>
 
-    <script>
-        // Parse initial data from Flask (passed as JSON)
-        const chartData = JSON.parse('{{ data | tojson | safe }}');
+  <script>
+    function toggleMenu() {
+      const navLinks = document.getElementById('navLinks');
+      navLinks.classList.toggle('open');
+    }
+    const chartData = JSON.parse('{{ data | tojson | safe }}');
+    const sensorColors = ['#007bff', '#28a745', '#dc3545', '#ffc107', '#17a2b8']; // Fixed colors
+    const datasets = {};
+    let colorIndex = 0;
+    chartData.forEach(point => {
+      if (!datasets[point.device]) {
+        const color = sensorColors[colorIndex % sensorColors.length];
+        colorIndex++;
+        datasets[point.device] = {
+          label: point.device,
+          data: [],
+          borderColor: color,
+          backgroundColor: color + '33', // Semi-transparent for fill
+          fill: true,
+          tension: 0.1
+        };
+      }
+      datasets[point.device].data.push({ x: point.timestamp, y: point.value });
+    });
 
-        // Setup datasets grouped by device
-        const datasets = {};
-        chartData.forEach(point => {
-            if (!datasets[point.device]) {
-                const color = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-                datasets[point.device] = {
-                    label: point.device,
-                    data: [],
-                    borderColor: color,
-                    backgroundColor: color,
-                    fill: false,
-                    tension: 0.1
-                };
+    const ctx = document.getElementById('modbusChart').getContext('2d');
+    let modbusChart;
+    let currentDatasets = datasets;
+
+    function updateCustomLegend(datasetsObj) {
+      const legendDiv = document.getElementById('customLegend');
+      let html = '';
+      Object.keys(datasetsObj).forEach(device => {
+        const color = datasetsObj[device].borderColor;
+        html += `
+          <div class="legend-item">
+            <div class="legend-color" style="background-color: ${color};"></div>
+            <span>${device}</span>
+          </div>
+        `;
+      });
+      legendDiv.innerHTML = html;
+    }
+
+    function setChartWrapperWidth() {
+      const area = document.querySelector('.chartAreaWrapper');
+      const containerWidth = area.clientWidth - 20; // account for padding
+      const maxPoints = Math.max(...Object.values(currentDatasets).map(d => d.data.length), 1);
+      const widthPerPoint = 15; // pixels per data point
+      const dataWidth = maxPoints * widthPerPoint;
+      let newWidth = Math.max(containerWidth, dataWidth);
+      document.getElementById('chartWrapper').style.width = newWidth + 'px';
+    }
+
+    function createOrUpdateChart() {
+      setChartWrapperWidth();
+      updateCustomLegend(currentDatasets);
+
+      const chartDatasets = Object.values(currentDatasets);
+
+      // Calculate min and max X to fill exactly without extra space
+      const allPoints = chartDatasets.flatMap(d => d.data);
+      let minX, maxX;
+      if (allPoints.length > 0) {
+        const times = allPoints.map(p => new Date(p.x));
+        minX = new Date(Math.min(...times));
+        maxX = new Date(Math.max(...times));
+      }
+
+      if (modbusChart) {
+        modbusChart.destroy();
+      }
+
+      modbusChart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets: chartDatasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: {
+            padding: {
+              left: 20,
+              right: 0,
+              top: 0,
+              bottom: 0
             }
-            datasets[point.device].data.push({x: point.timestamp, y: point.value});
-        });
-
-        const ctx = document.getElementById('modbusChart').getContext('2d');
-
-        // Create Chart instance
-        const modbusChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                datasets: Object.values(datasets)
+          },
+          scales: {
+            x: { 
+              type: 'time',
+              min: minX,
+              max: maxX,
+              time: { tooltipFormat: 'YYYY-MM-DD HH:mm:ss', displayFormats: { second: 'HH:mm:ss', minute: 'HH:mm', hour: 'HH:mm' } }, 
+              title: { display: true, text: 'Timestamp' } 
             },
-            options: {
-                responsive: true,
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            parser: 'YYYY-MM-DD HH:mm:ss',
-                            tooltipFormat: 'll HH:mm',
-                            unit: 'minute',
-                            displayFormats: { minute: 'HH:mm' }
-                        },
-                        title: { display: true, text: 'Timestamp' }
-                    },
-                    y: {
-                        title: { display: true, text: 'Value' }
-                    }
-                },
-                plugins: {
-                    legend: { display: true, position: 'top' }
-                }
-            }
-        });
+            y: { title: { display: true, text: 'Value (Pa)' } }
+          },
+          plugins: { 
+            legend: { display: false } // Hide built-in legend
+          }
+        }
+      });
+    }
 
-        // Connect to Socket.IO server
-        const socket = io();
+    // Initial chart creation
+    createOrUpdateChart();
 
-        // Listen for live modbus updates
-        socket.on('modbus_update', function(data) {
-            const device = data.device;
-            const value = data.value;
-            const timestamp = new Date().toISOString().slice(0,19).replace('T',' ');
+    const socket = io();
+    socket.on('modbus_update', function (data) {
+      const device = data.device;
+      const value = data.value;
+      const timestamp = new Date().toISOString();
 
-            // Find dataset by device
-            let dataset = modbusChart.data.datasets.find(d => d.label === device);
+      if (!currentDatasets[device]) {
+        const color = sensorColors[colorIndex % sensorColors.length];
+        colorIndex++;
+        currentDatasets[device] = { 
+          label: device, 
+          data: [], 
+          borderColor: color, 
+          backgroundColor: color + '33',
+          fill: true, 
+          tension: 0.1 
+        };
+      }
 
-            if (!dataset) {
-                // Create new dataset if device not present
-                const color = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
-                dataset = {
-                    label: device,
-                    data: [],
-                    borderColor: color,
-                    backgroundColor: color,
-                    fill: false,
-                    tension: 0.1
-                };
-                modbusChart.data.datasets.push(dataset);
-            }
+      let dataset = currentDatasets[device];
+      dataset.data.push({ x: timestamp, y: value });
+      if (dataset.data.length > 50) dataset.data.shift();
 
-            // Add new data point
-            dataset.data.push({ x: timestamp, y: value });
-
-            // Keep data length manageable (last 50 points)
-            if (dataset.data.length > 50) {
-                dataset.data.shift();
-            }
-
-            // Update chart display
-            modbusChart.update();
-        });
-    </script>
+      createOrUpdateChart(); // Rebuild to update legend, width, and min/max
+    });
+  </script>
 </body>
 </html>

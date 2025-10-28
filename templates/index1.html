@@ -1,0 +1,99 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live Modbus Data</title>
+    <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f0f0f0;
+            text-align: center;
+            margin-top: 100px;
+        }
+        .card {
+            display: inline-block;
+            padding: 30px 50px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        #value {
+            font-size: 3em;
+            color: #007BFF;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Assembly Room Pressure</h1>
+        <div id="value">--</div>
+    </div>
+
+    <script>
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log("Connected to server");
+        });
+
+        socket.on('modbus_update', data => {
+            document.getElementById('value').innerText = data.value + " psi";
+            console.log("Received:", data.value);
+        });
+    </script>
+</body>
+</html> -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Modbus Multi-Room Dashboard</title>
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f9f9f9;
+      text-align: center;
+      padding-top: 40px;
+    }
+    .card {
+      background: white;
+      margin: 20px auto;
+      padding: 20px 40px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    .value {
+      font-size: 2.5em;
+      color: #007BFF;
+    }
+  </style>
+</head>
+<body>
+  <h1>Live Modbus Dashboard</h1>
+  <div class="card" id="assembly_room">
+    <h2>Assembly Room</h2>
+    <div class="value">--</div>
+  </div>
+  <div class="card" id="testing_room">
+    <h2>Testing Room</h2>
+    <div class="value">--</div>
+  </div>
+
+  <script>
+    const socket = io();
+
+    socket.on('modbus_update', function(data) {
+      const card = document.getElementById(data.device);
+      if (card) {
+        card.querySelector('.value').innerText = data.value + " psi";
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Pressure Guage Data Chart (Live)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.0"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f9f9f9;
+        }
+        nav {
+            background-color: #007bff;
+            padding: 10px 20px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 16px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+        nav a:hover, nav a.active {
+            background-color: #0056b3;
+        }
+        main {
+            max-width: 900px;
+            margin: 40px auto 80px auto; /* bottom margin for footer */
+            padding: 0 20px;
+            background: white;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        #modbusChart {
+            max-width: 100%;
+            max-height: 500px;
+        }
+        footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: #007bff;
+            color: white;
+            text-align: center;
+            padding: 12px 0;
+            font-size: 14px;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="./" >Realtime</a>
+        <a href="/database">Database</a>
+        <a href="/chart" class="active">Chart</a>
+    </nav>
+
+    <main>
+        <h1>Pressure Guage Data Chart (Live)</h1>
+
+        <canvas id="modbusChart"></canvas>
+    </main>
+
+    <footer>
+        &copy; 2025 flexicare-Lanka - Pressure Guage Data Monitoring System
+    </footer>
+
+    <script>
+        // Parse initial data from Flask (passed as JSON)
+        const chartData = JSON.parse('{{ data | tojson | safe }}');
+
+        // Setup datasets grouped by device
+        const datasets = {};
+        chartData.forEach(point => {
+            if (!datasets[point.device]) {
+                const color = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                datasets[point.device] = {
+                    label: point.device,
+                    data: [],
+                    borderColor: color,
+                    backgroundColor: color,
+                    fill: false,
+                    tension: 0.1
+                };
+            }
+            datasets[point.device].data.push({x: point.timestamp, y: point.value});
+        });
+
+        const ctx = document.getElementById('modbusChart').getContext('2d');
+
+        // Create Chart instance
+        const modbusChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: Object.values(datasets)
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            parser: 'YYYY-MM-DD HH:mm:ss',
+                            tooltipFormat: 'll HH:mm',
+                            unit: 'minute',
+                            displayFormats: { minute: 'HH:mm' }
+                        },
+                        title: { display: true, text: 'Timestamp' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Value' }
+                    }
+                },
+                plugins: {
+                    legend: { display: true, position: 'top' }
+                }
+            }
+        });
+
+        // Connect to Socket.IO server
+        const socket = io();
+
+        // Listen for live modbus updates
+        socket.on('modbus_update', function(data) {
+            const device = data.device;
+            const value = data.value;
+            const timestamp = new Date().toISOString().slice(0,19).replace('T',' ');
+
+            // Find dataset by device
+            let dataset = modbusChart.data.datasets.find(d => d.label === device);
+
+            if (!dataset) {
+                // Create new dataset if device not present
+                const color = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                dataset = {
+                    label: device,
+                    data: [],
+                    borderColor: color,
+                    backgroundColor: color,
+                    fill: false,
+                    tension: 0.1
+                };
+                modbusChart.data.datasets.push(dataset);
+            }
+
+            // Add new data point
+            dataset.data.push({ x: timestamp, y: value });
+
+            // Keep data length manageable (last 50 points)
+            if (dataset.data.length > 50) {
+                dataset.data.shift();
+            }
+
+            // Update chart display
+            modbusChart.update();
+        });
+    </script>
+</body>
+</html>

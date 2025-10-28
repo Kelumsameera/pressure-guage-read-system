@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pressure Guage Multi-Room Dashboard</title>
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding-top: 60px; /* leave space for navbar */
+      text-align: center;
+    }
+    nav {
+      background-color: #007bff;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 1000;
+    }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 16px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      transition: background-color 0.3s ease;
+    }
+    nav a:hover, nav a.active {
+      background-color: #0056b3;
+    }
+    .card {
+      background: white;
+      margin: 20px auto;
+      padding: 20px 40px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+      width: 300px;
+    }
+    .value {
+      font-size: 2.5em;
+      color: #007BFF;
+    }
+    footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #007bff;
+      color: white;
+      text-align: center;
+      padding: 12px 0;
+      font-size: 14px;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" >Realtime</a>
+    <a href="/database">Database</a>
+    <a href="/chart" >Chart</a>
+  </nav>
+
+  <h1>Live Pressure Guage Data Dashboard</h1>
+
+  <div class="card" id="assembly_room">
+    <h2>Assembly Room</h2>
+    <div class="value">--</div>
+  </div>
+  <div class="card" id="testing_room">
+    <h2>Testing Room</h2>
+    <div class="value">--</div>
+  </div>
+
+  <footer>
+    &copy; 2025 flexicare-Lanka - Pressure Guage Data Monitoring System
+  </footer>
+
+  <script>
+    const socket = io();
+
+    socket.on('modbus_update', function(data) {
+      const card = document.getElementById(data.device);
+      if (card) {
+        card.querySelector('.value').innerText = data.value + " psi";
+      }
+    });
+  </script>
+</body>
+</html>

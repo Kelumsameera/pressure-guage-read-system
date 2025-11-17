@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Live Pressure Gauges</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- jqWidgets CSS & JS -->
+  <link rel="stylesheet" href="https://www.jqwidgets.com/public/jqwidgets/styles/jqx.base.css" type="text/css" />
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.socket.io/4.3.2/socket.io.min.js"></script>
+  <script src="https://www.jqwidgets.com/public/jqwidgets/jqxcore.js"></script>
+  <script src="https://www.jqwidgets.com/public/jqwidgets/jqxdraw.js"></script>
+  <script src="https://www.jqwidgets.com/public/jqwidgets/jqxgauge.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding-top: 60px;
+      text-align: center;
+      color: #333;
+    }
+
+    nav {
+      background-color: #007bff;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 1000;
+      flex-wrap: wrap;
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      flex: 1;
+    }
+
+    .nav-left img {
+      height: 40px;
+      margin-right: 10px;
+    }
+
+    .nav-title {
+      font-weight: bold;
+      margin: 0;
+    }
+
+    .nav-hamburger {
+      display: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: white;
+      padding: 5px;
+      border: none;
+      background: none;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 16px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      transition: background-color 0.3s ease;
+    }
+
+    .nav-links a:hover, .nav-links a.active { 
+      background-color: #0056b3; 
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .nav-hamburger {
+        display: block;
+      }
+
+      .nav-links {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background-color: #007bff;
+        flex-direction: column;
+        padding: 10px 0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      }
+
+      .nav-links.open {
+        display: flex;
+      }
+
+      .nav-links a {
+        width: 100%;
+        text-align: center;
+        font-size: 18px;
+        padding: 12px;
+      }
+
+      .nav-left {
+        justify-content: space-between;
+      }
+
+      .nav-title {
+        font-size: 14px;
+      }
+
+      nav {
+        padding: 10px;
+      }
+    }
+
+    h1 {
+      margin: 30px 0 15px 0;
+      color: #007bff;
+      font-weight: 700;
+    }
+
+    .gauge-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 40px;
+      padding: 0 20px 80px;
+    }
+
+    .gauge-card-wrapper {
+      max-width: 320px;
+      width: 100%;
+    }
+
+    .gauge-card {
+      width: 300px;
+      height: 300px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      padding: 15px;
+      margin: 0 auto;
+    }
+
+    .gauge-card .jqx-gauge-caption {
+      font-weight: 700 !important;
+      color: #0056b3 !important;
+      background-color: #d0e4ff;
+      border-radius: 6px;
+      padding: 4px 12px;
+      box-shadow: 0 0 6px #a8c5ff inset;
+      user-select: none;
+      margin-bottom: 6px;
+      display: inline-block;
+      min-width: 200px;
+      text-align: center;
+    }
+
+    .gauge-label {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 28px;
+      font-weight: bold;
+      margin-top: 12px;
+      letter-spacing: 1.5px;
+      background: #e7f0ff;
+      border-radius: 6px;
+      padding: 8px 14px;
+      box-shadow: inset 0 0 8px #a8c5ff;
+      width: 100%;
+      max-width: 280px;
+      margin: 12px auto 4px;
+      user-select: none;
+      transition: color 0.3s ease;
+    }
+
+    .device-name {
+      font-size: 14px;
+      color: #555;
+      font-style: italic;
+      margin-bottom: 10px;
+    }
+
+    footer {
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+      background: #007bff;
+      color: white;
+      text-align: center;
+      padding: 12px 0;
+      font-size: 14px;
+      user-select: none;
+    }
+
+    footer a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      margin-left: 5px;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 650px) {
+      .gauge-container { gap: 25px; }
+      .gauge-card { width: 260px; height: 260px; }
+      .gauge-label { font-size: 24px; max-width: 240px; padding: 6px 10px; }
+      .gauge-card .jqx-gauge-caption { min-width: 160px; }
+    }
+
+    @media (max-width: 400px) {
+      nav { flex-direction: column; gap: 12px; padding: 15px 10px; }
+      nav a { font-size: 14px; padding: 6px 12px; }
+      .gauge-card { width: 220px; height: 220px; }
+      .gauge-label { font-size: 20px; max-width: 200px; }
+      .gauge-card .jqx-gauge-caption { min-width: 140px; font-size: 16px !important; padding: 3px 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-left">
+      <img src="https://flexicare.com/wp-content/uploads/Flexicare-Emblem-White.svg" alt="Flexicare Logo">
+      <span class="nav-title">Flexicare-Lanka - Pressure Gauge Monitoring</span>
+    </div>
+    <button class="nav-hamburger" onclick="toggleMenu()">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <div class="nav-links" id="navLinks">
+      <a href="/" class="active"><i class="fa-solid fa-signal"></i> Realtime</a>
+      <a href="/database"><i class="fa-solid fa-database"></i> Database</a>
+      <a href="/chart"><i class="fa-solid fa-chart-line"></i> Chart</a>
+      <a href="/history"><i class="fa-solid fa-clock-rotate-left"></i> History</a>
+    </div>
+  </nav>
+
+  <h1>Real-time Pressure Dashboard</h1>
+
+  <div class="gauge-container">
+    <div class="gauge-card-wrapper">
+      <div id="gauge_production" class="gauge-card" aria-label="Production Clean Room Pressure Gauge"></div>
+      <div id="value_production" class="gauge-label">0 Pa</div>
+      <div class="device-name">Device ID: production_clean_room</div>
+    </div>
+    <div class="gauge-card-wrapper">
+      <div id="gauge_assembly" class="gauge-card" aria-label="Assembly Clean Room Pressure Gauge"></div>
+      <div id="value_assembly" class="gauge-label">0 Pa</div>
+      <div class="device-name">Device ID: assembly_clean_room</div>
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2025 Developed by Flexicare-Lanka - Engineering Team (Sameera & Kelum)
+    | <a href="/about" title="About"><i class="fa-solid fa-circle-question"></i></a>
+  </footer>
+
+  <script>
+    function toggleMenu() {
+      const navLinks = document.getElementById('navLinks');
+      navLinks.classList.toggle('open');
+    }
+
+    // Close menu on link click (optional, for better UX)
+    document.querySelectorAll('.nav-links a').forEach(link => {
+      link.addEventListener('click', () => {
+        document.getElementById('navLinks').classList.remove('open');
+      });
+    });
+
+    const socket = io();
+
+    function initGauge(id, captionText) {
+      $(`#${id}`).jqxGauge({
+        ranges: [
+          { startValue: 0, endValue: 15, style: { fill: "#0080ff" }, startWidth: 1, endWidth: 5 },
+          { startValue: 15, endValue: 30, style: { fill: "#00FF00" }, startWidth: 1, endWidth: 5 },
+          { startValue: 30, endValue: 45, style: { fill: "#FFA500" }, startWidth: 1, endWidth: 5 },
+          { startValue: 45, endValue: 50, style: { fill: "#FF0000" }, startWidth: 1, endWidth: 5 }
+        ],
+        cap: { radius: 0.08, style: { fill: '#333', stroke: '#000' } },
+        border: { size: '10%', style: { stroke: '#333', 'stroke-width': 3 }, visible: true },
+        ticksMinor: { interval: 2, size: '5%' },
+        ticksMajor: { interval: 10, size: '9%' },
+        labels: { interval: 10 },
+        pointer: { width: 5 },
+        min: 0,
+        max: 50,
+        value: 0,
+        colorScheme: 'scheme01',
+        animationDuration: 500,
+        caption: {
+          value: captionText,
+          position: 'bottom',
+          offset: [0, 15],
+          visible: true,
+          font: { size: 20, family: 'Arial', color: '#007BFF', weight: 'bold' }
+        }
+      });
+    }
+
+    function getColorByValue(val) {
+      if (val < 30) return "#28a745";       // green
+      else if (val < 45) return "#ffc107";  // orange
+      else return "#dc3545";                 // red
+    }
+
+    $(document).ready(function () {
+      initGauge("gauge_production", "Production Clean Room");
+      initGauge("gauge_assembly", "Assembly Clean Room");
+
+      socket.on('modbus_update', function (data) {
+        const value = parseFloat(data.value).toFixed(1);
+        const color = getColorByValue(value);
+
+        if (data.device === "production_clean_room") {
+          $('#gauge_production').jqxGauge('value', value);
+          $('#value_production').text(value + " Pa").css('color', color);
+        } else if (data.device === "assembly_clean_room") {
+          $('#gauge_assembly').jqxGauge('value', value);
+          $('#value_assembly').text(value + " Pa").css('color', color);
+        }
+      });
+    });
+  </script>
+
+</body>
+</html>

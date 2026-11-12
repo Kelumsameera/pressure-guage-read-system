@@ -18,7 +18,7 @@ Early-stage Python/Flask service that polls industrial pressure devices over Mod
 4. Configure the sensor IPs/unit IDs in `app.py`.
 5. Run the Flask application only on an authorized local network.
 
-> The current `main` branch contains hardcoded database settings. A separate draft security PR introduces runtime variables (`MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE`, `FLASK_SECRET_KEY`). Do not deploy the public source unchanged.
+> The merged credential cleanup reads `MYSQL_HOST`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DATABASE` and `FLASK_SECRET_KEY` from the process environment. Configure these on the host before starting the service; `.env` is not automatically loaded by this implementation. Do not deploy the service to an untrusted network.
 
 ## Current limitations
 
@@ -28,4 +28,4 @@ Early-stage Python/Flask service that polls industrial pressure devices over Mod
 - Check that the installed dependencies match the imports used by the scripts. `app.py` imports modules beyond the packages listed in `requirements.txt`.
 - Validate that database access, polling, chart views and exports all work after configuration changes.
 
-See the separate security pull request for the proposed credential cleanup.
+The credential cleanup is merged, but previous credentials remain in Git history until independently rotated and addressed.

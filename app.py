@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, flash, send_file, jsonify
 from flask_socketio import SocketIO
 from pyModbusTCP.client import ModbusClient
 import mysql.connector
+import os
 import threading
 import time
 from datetime import datetime, timedelta
@@ -15,16 +16,16 @@ from pymodbus.payload import BinaryPayloadDecoder
 from pymodbus.constants import Endian
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = os.environ.get('FLASK_SECRET_KEY')
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # MySQL Config
 db_config = {
-    'host': '127.0.0.1',
-    'user': 'root',
-    'password': 'Flexi@123',
-    'database': 'modbus_data'
+    'host': os.environ.get('MYSQL_HOST', '127.0.0.1'),
+    'user': os.environ.get('MYSQL_USER', 'root'),
+    'password': os.environ.get('MYSQL_PASSWORD'),
+    'database': os.environ.get('MYSQL_DATABASE', 'modbus_data')
 }
 
 # Modbus Device List
